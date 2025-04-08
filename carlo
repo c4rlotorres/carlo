@@ -1,59 +1,176 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <iomanip>
+#include <iomanip> 
+#include <limits>  
 
-using namespace std;
-
-struct Product {
-    string name;
-    int shelfLife;
-};
-
-void selectionSort(vector<Product>& products) {
-    int n = products.size();
-    for (int i = 0; i < n - 1; i++) {
-        int minIndex = i;
-        for (int j = i + 1; j < n; j++) {
-            if (products[j].shelfLife < products[minIndex].shelfLife) {
-                minIndex = j;
-            }
-        }
-        if (minIndex != i) {
-            swap(products[i], products[minIndex]);
-        }
-    }
-}
-
-int main() {
-    vector<Product> products = {
-        {"mangoes", 60},
-        {"apple", 38},
-        {"C2 Red", 360},
-        {"buko pie", 120},
-        {"Magic Sarap", 520},
-        {"C2 Green", 360},
-        {"boy bawang", 400},
-        {"banana", 24}
+class SariSariStore {
+private:
+    struct Item {
+        int id;
+        std::string name;
+        int price;
+        int shelfLife;
+        int pcs;
     };
 
-    selectionSort(products);
+    std::vector<Item> inventory;
 
+public:
+    SariSariStore() {
+      
+        inventory = {
+            {10245, "mangoes", 20, 60, 100},
+            {20255, "apple", 15, 38, 50},
+            {30356, "C2 Red", 30, 360, 200},
+            {12347, "buko pie", 40, 120, 150},
+            {77878, "magic sarap", 10, 520, 1000},
+            {10255, "C2 Green", 25, 360, 300},
+            {12032, "boy bawang", 18, 400, 140},
+            {11234, "banana", 7, 24, 30}
+        };
+    }
 
-    int maxNameLength = 0;
-    for (const auto& product : products) {
-        if (product.name.length() > maxNameLength) {
-            maxNameLength = product.name.length();
+    void displayInventory() {
+        std::cout << "Sari-Sari Store Inventory\n";
+        std::cout << "---------------------------------------------------------\n";
+        std::cout << std::left 
+                  << std::setw(10) << "ID" << std::setw(15) << "Name"
+                  << std::setw(10) << "Price" << std::setw(15) << "Shelf Life"
+                  << std::setw(10) << "Pcs" << "\n";
+        std::cout << "---------------------------------------------------------\n";
+        
+        for (const auto& item : inventory) {
+            std::cout << std::left 
+                      << std::setw(10) << item.id << std::setw(15) << item.name
+                      << std::setw(10) << item.price << std::setw(15) << item.shelfLife
+                      << std::setw(10) << item.pcs << "\n";
         }
+        std::cout << "---------------------------------------------------------\n";
     }
 
-    cout << left << setw(maxNameLength + 2) << "Name" << "Shelf Life (days)" << endl;
-    cout << string(maxNameLength + 2 + 17, '-') << endl;
-    
-    for (const auto& product : products) {
-        cout << left << setw(maxNameLength + 2) << product.name 
-             << right << setw(5) << product.shelfLife << endl;
+    Item* findItem(int id) {
+        for (auto& item : inventory) {
+            if (item.id == id) {
+                return &item;
+            }
+        }
+        return nullptr;
     }
 
+    Item* findItem(const std::string& name) {
+        for (auto& item : inventory) {
+            if (item.name == name) {
+                return &item;
+            }
+        }
+        return nullptr;
+    }
+
+    void processOrder() {
+        std::vector<std::pair<Item, int>> orderItems;
+        bool done = false;
+        int totalAmount = 0;
+
+        while (!done) {
+            displayInventory();
+            
+            std::cout << "\nEnter the ID or name of the product you want: ";
+            std::string input;
+            std::cin >> input;
+
+            Item* selectedItem = nullptr;
+
+            try {
+                int id = std::stoi(input);
+                selectedItem = findItem(id);
+            } catch (...) {
+
+                selectedItem = findItem(input);
+            }
+
+            if (!selectedItem) {
+                std::cout << "Product not found. Please try again.\n";
+                continue;
+            }
+
+            int quantity;
+            while (true) {
+                std::cout << "Enter the quantity for " << selectedItem->name << ": ";
+                std::cin >> quantity;
+
+                if (std::cin.fail() || quantity <= 0) {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    std::cout << "Invalid quantity. Please enter a positive number.\n";
+                } else if (quantity > selectedItem->pcs) {
+                    std::cout << "Not enough stock. Available: " << selectedItem->pcs << "\n";
+                } else {
+                    break;
+                }
+            }
+
+            orderItems.emplace_back(*selectedItem, quantity);
+            selectedItem->pcs -= quantity;
+
+            std::cout << "\nCurrent Order:\n";
+            std::cout << "---------------------------------\n";
+            std::cout << std::left << std::setw(15) << "Item" 
+                      << std::setw(10) << "Price" 
+                      << std::setw(10) << "Qty" 
+                      << std::setw(10) << "Subtotal" << "\n";
+            std::cout << "---------------------------------\n";
+
+            totalAmount = 0;
+            for (const auto& order : orderItems) {
+                int subtotal = order.first.price * order.second;
+                std::cout << std::left << std::setw(15) << order.first.name 
+                          << std::setw(10) << order.first.price 
+                          << std::setw(10) << order.second 
+                          << std::setw(10) << subtotal << "\n";
+                totalAmount += subtotal;
+            }
+            std::cout << "---------------------------------\n";
+            std::cout << "Total: " << totalAmount << "\n";
+
+            char response;
+            while (true) {
+                std::cout << "\nIs that all? (y/n): ";
+                std::cin >> response;
+                if (response == 'y' || response == 'Y') {
+                    done = true;
+                    break;
+                } else if (response == 'n' || response == 'N') {
+                    break;
+                } else {
+                    std::cout << "Please enter 'y' or 'n'.\n";
+                }
+            }
+        }
+
+        std::cout << "\nFinal Order Summary:\n";
+        std::cout << "---------------------------------\n";
+        std::cout << std::left << std::setw(15) << "Item" 
+                  << std::setw(10) << "Price" 
+                  << std::setw(10) << "Qty" 
+                  << std::setw(10) << "Subtotal" << "\n";
+        std::cout << "---------------------------------\n";
+
+        for (const auto& order : orderItems) {
+            int subtotal = order.first.price * order.second;
+            std::cout << std::left << std::setw(15) << order.first.name 
+                      << std::setw(10) << order.first.price 
+                      << std::setw(10) << order.second 
+                      << std::setw(10) << subtotal << "\n";
+        }
+        std::cout << "---------------------------------\n";
+        std::cout << "Total Amount: " << totalAmount << "\n";
+        std::cout << "Thank you for your order!\n";
+    }
+};
+
+int main() {
+    SariSariStore store;
+    store.processOrder();
     return 0;
 }
